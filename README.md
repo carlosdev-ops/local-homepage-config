@@ -25,6 +25,33 @@ Copy the `local/homepage_config` directory into your Moodle installation and run
 - Block export is fully supported for `html` blocks only. Other block types are migrated via their `configdata` field; auxiliary table rows are not transferred.
 - Only import ZIP files produced by this plugin from a **trusted** Moodle instance (block configdata is deserialized during restore).
 
+### Running tests
+
+```bash
+# PHPUnit — manager
+vendor/bin/phpunit local/homepage_config/tests/manager_test.php
+
+# PHPUnit — lib helpers
+vendor/bin/phpunit local/homepage_config/tests/lib_test.php
+
+# PHPUnit — external function
+vendor/bin/phpunit local/homepage_config/tests/external/get_tile_counts_test.php
+
+# Behat — export/import UI
+php admin/tool/behat/cli/run.php --tags=@local_homepage_config
+```
+
+### Rebuilding AMD assets
+
+```bash
+# Requires npm install in Moodle root (run once as www-data)
+grunt amd --root=local/homepage_config
+
+# Alternative — terser only (no Babel transpile)
+npx terser amd/src/tiles_init.js --compress --mangle --comments false \
+  --source-map "url='tiles_init.min.js.map'" --output amd/build/tiles_init.min.js
+```
+
 ---
 
 *Full documentation in French below.*
@@ -286,14 +313,17 @@ Le champ `plugin_config` enregistre la configuration **utilisée au moment de l'
 ```
 local/homepage_config/
 │
-├── version.php                    ← Version 3.1.1, requires Moodle 4.1
+├── version.php                    ← Version 3.2.0, requires Moodle 4.1
 ├── settings.php                   ← Enregistrement dans l'arbre admin Moodle
 ├── index.php                      ← Page Export / Import (UI admin)
 ├── lib.php                        ← Hook before_footer + rendu des tuiles
+├── styles.css                     ← Variantes couleur des tuiles (6 couleurs)
 │
 ├── amd/
 │   ├── src/tiles_init.js          ← Module AMD source : déplace les tuiles dans le DOM
-│   └── build/tiles_init.min.js    ← Version minifiée (chargée en prod)
+│   └── build/
+│       ├── tiles_init.min.js      ← Version minifiée (chargée en prod)
+│       └── tiles_init.min.js.map  ← Source map pour le débogage
 │
 ├── templates/
 │   └── tiles.mustache             ← Template Mustache des tuiles dynamiques
@@ -302,6 +332,8 @@ local/homepage_config/
 │   ├── manager.php                ← Toute la logique export/import/résumé
 │   ├── external/
 │   │   └── get_tile_counts.php    ← Web service : comptages cours/utilisateurs
+│   ├── form/
+│   │   └── import_form.php        ← Formulaire d'import (moodleform)
 │   ├── event/
 │   │   ├── config_exported.php    ← Événement Moodle : export déclenché
 │   │   └── config_imported.php    ← Événement Moodle : import déclenché
@@ -311,7 +343,18 @@ local/homepage_config/
 ├── db/
 │   ├── access.php                 ← Capability : local/homepage_config:manage
 │   ├── caches.php                 ← Définition du cache applicatif tilecounts (TTL 5 min)
-│   └── services.php               ← Déclaration du web service get_tile_counts
+│   ├── services.php               ← Déclaration du web service get_tile_counts
+│   └── upgrade.php                ← Migrations de version (savepoints)
+│
+├── tests/
+│   ├── manager_test.php           ← PHPUnit : export, import, résumé (15 tests)
+│   ├── lib_test.php               ← PHPUnit : resolve_catids, count_courses/users (12 tests)
+│   ├── external/
+│   │   └── get_tile_counts_test.php ← PHPUnit : web service (8 tests)
+│   ├── behat/
+│   │   └── export_import.feature  ← Behat : UI export/import (6 scénarios)
+│   └── fixtures/
+│       └── not_a_zip.txt          ← Fixture pour le test de rejet de fichier invalide
 │
 └── lang/
     ├── en/local_homepage_config.php
@@ -325,6 +368,7 @@ local/homepage_config/
 | `export_to_zip()` | Crée le ZIP dans un répertoire temporaire, retourne le chemin |
 | `import_from_zip($path, $restore_blocks)` | Applique la config depuis le ZIP, retourne les stats |
 | `get_summary()` | Retourne compteurs + timestamps dernier export/import pour l'UI |
+| `get_defaults()` | Retourne les valeurs par défaut de tous les paramètres (source unique) |
 
 ### La classe `manager` — méthodes privées clés
 
@@ -458,6 +502,7 @@ Elles sont également loggées avec `debugging()` au niveau `DEBUG_DEVELOPER` po
 
 | Version | Changements |
 |---|---|
+| **3.2.0** | Qualité : `db/upgrade.php` + savepoints. Formulaire import migré vers `moodleform` (sesskey auto, validation Moodle). Source unique pour les defaults (`manager::get_defaults()`). `styles.css` avec 6 variantes couleur pour les tuiles. Tests PHPUnit lib + external function + scénarios Behat. Rebuild AMD avec terser (source map valide). Copyright Carlos Costa. |
 | **3.1.1** | Sécurité : assainissement du fallback `unserialize` sur import de blocs. Perf : O(n×m) → O(n+m) dans `restore_flavours`. Rendu tuiles via Mustache + AMD (plus de script inline). Web service `get_tile_counts` remplace l'endpoint PHP brut. Erreurs d'import affichées dans l'UI. Timestamps dernier export/import dans le résumé. |
 | **3.0.0** | Tous les paramètres configurables via l'UI admin (plus rien de hard-codé) |
 | **2.0.0** | Ajout Smart Menus, Flavours, core settings, blocs course-index |
