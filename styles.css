@@ -1,0 +1,52 @@
+/**
+ * Styles for local_homepage_config — dynamic homepage tiles.
+ *
+ * Defines the six colour variants used by templates/tiles.mustache:
+ *   hpt-tile--blue | --green | --orange | --purple | --red | --teal
+ *
+ * Loaded automatically by Moodle on every page (plugin styles.css convention).
+ * Rules are scoped to .hpt-tile so they cannot leak outside the tiles grid.
+ *
+ * @package    local_homepage_config
+ * @copyright  2026 Carlos Costa
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+/* ── Base tile ─────────────────────────────────────────────────────────────── */
+
+.hpt-tile {
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+/* Subtle lift on hover — only meaningful when the tile is a link. */
+a:hover .hpt-tile {
+    transform: translateY(-2px);
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15) !important;
+}
+
+/* Icon, value and title inherit the card foreground colour. */
+.hpt-tile .hpt-tile__icon,
+.hpt-tile .hpt-tile__value,
+.hpt-tile .hpt-tile__title {
+    color: inherit;
+}
+
+/* ── Colour variants ───────────────────────────────────────────────────────── */
+
+.hpt-tile--blue   { background-color: #007bff; color: #fff; }
+.hpt-tile--green  { background-color: #28a745; color: #fff; }
+.hpt-tile--orange { background-color: #fd7e14; color: #fff; }
+.hpt-tile--purple { background-color: #6f42c1; color: #fff; }
+.hpt-tile--red    { background-color: #dc3545; color: #fff; }
+.hpt-tile--teal   { background-color: #20c997; color: #fff; }
+
+/* Bootstrap's .text-muted uses a grey that disappears on coloured backgrounds —
+   override it for all variants to a semi-transparent white instead. */
+.hpt-tile--blue   .hpt-tile__subtitle,
+.hpt-tile--green  .hpt-tile__subtitle,
+.hpt-tile--orange .hpt-tile__subtitle,
+.hpt-tile--purple .hpt-tile__subtitle,
+.hpt-tile--red    .hpt-tile__subtitle,
+.hpt-tile--teal   .hpt-tile__subtitle {
+    color: rgba(255, 255, 255, .75) !important;
+}
