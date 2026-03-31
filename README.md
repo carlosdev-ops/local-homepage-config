@@ -1,5 +1,10 @@
 # local_homepage_config
 
+![Version](https://img.shields.io/badge/version-3.2.0-blue)
+![Moodle](https://img.shields.io/badge/Moodle-4.1+-orange)
+![License](https://img.shields.io/badge/license-GPLv3-green)
+![PHP](https://img.shields.io/badge/PHP-7.4%2B-purple)
+
 ## English summary
 
 **local_homepage_config** is a Moodle 4.1+ local plugin with two features:
@@ -500,10 +505,10 @@ Elles sont également loggées avec `debugging()` au niveau `DEBUG_DEVELOPER` po
 
 ## Versions
 
-| Version | Changements |
-|---|---|
-| **3.2.0** | Qualité : `db/upgrade.php` + savepoints. Formulaire import migré vers `moodleform` (sesskey auto, validation Moodle). Source unique pour les defaults (`manager::get_defaults()`). `styles.css` avec 6 variantes couleur pour les tuiles. Tests PHPUnit lib + external function + scénarios Behat. Rebuild AMD avec terser (source map valide). Copyright Carlos Costa. |
-| **3.1.1** | Sécurité : assainissement du fallback `unserialize` sur import de blocs. Perf : O(n×m) → O(n+m) dans `restore_flavours`. Rendu tuiles via Mustache + AMD (plus de script inline). Web service `get_tile_counts` remplace l'endpoint PHP brut. Erreurs d'import affichées dans l'UI. Timestamps dernier export/import dans le résumé. |
-| **3.0.0** | Tous les paramètres configurables via l'UI admin (plus rien de hard-codé) |
-| **2.0.0** | Ajout Smart Menus, Flavours, core settings, blocs course-index |
-| **1.0.0** | Export/import config_plugins + fichiers + blocs site-index |
+| Version | Date | Tag Git | Changements |
+|---|---|---|---|
+| **3.2.0** | 2026-03-31 | `v3.2.0` | Qualité : `db/upgrade.php` + savepoints. Formulaire import migré vers `moodleform` (sesskey auto, validation Moodle). Source unique pour les defaults (`manager::get_defaults()`). `styles.css` avec 6 variantes couleur pour les tuiles. Tests PHPUnit lib + external function + scénarios Behat. Rebuild AMD avec terser (source map valide). Copyright Carlos Costa. |
+| **3.1.1** | 2026-03-27 | `v3.1.1` | Sécurité : assainissement du fallback `unserialize` sur import de blocs. Perf : O(n×m) → O(n+m) dans `restore_flavours`. Rendu tuiles via Mustache + AMD (plus de script inline). Web service `get_tile_counts` remplace l'endpoint PHP brut. Erreurs d'import affichées dans l'UI. Timestamps dernier export/import dans le résumé. |
+| **3.0.0** | 2026-02-15 | `v3.0.0` | Tous les paramètres configurables via l'UI admin (plus rien de hard-codé) |
+| **2.0.0** | 2026-01-10 | `v2.0.0` | Ajout Smart Menus, Flavours, core settings, blocs course-index |
+| **1.0.0** | 2025-12-01 | `v1.0.0` | Export/import config_plugins + fichiers + blocs site-index |
