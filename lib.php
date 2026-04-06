@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -29,6 +31,30 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
+ * Purge the tile-counts cache.
+ *
+ * Called automatically by Moodle's admin settings framework via
+ * admin_setting::set_updatedcallback() whenever the tilescfg setting is saved.
+ * This ensures cached course/user counts are never stale after a configuration
+ * change — without waiting for the 5-minute TTL to expire.
+ */
+function local_homepage_config_invalidate_tile_cache(): void {
+    \cache::make('local_homepage_config', 'tilecounts')->purge();
+}
+
+/**
+ * Purge the rendered banner HTML cache.
+ *
+ * Called automatically via set_updatedcallback() whenever any banner setting
+ * (bannercfg, bannerinterval, bannerheight, bannermaxwidth) is saved.
+ * Ensures the next page load re-runs format_text() with the new configuration
+ * instead of serving a stale cached version.
+ */
+function local_homepage_config_invalidate_banner_cache(): void {
+    \cache::make('local_homepage_config', 'banner')->purge();
+}
+
+/**
  * Inject dynamic tiles HTML before the page footer.
  *
  * Moodle calls this function automatically on every page if it exists in
@@ -44,34 +70,137 @@ function local_homepage_config_before_footer(): string {
         return '';
     }
 
+    $output = '';
+
+    // ── Dynamic tiles ────────────────────────────────────────────────────────
     // Read tile configuration JSON from plugin settings.
     $json = get_config('local_homepage_config', 'tilescfg');
+    if ($json && trim($json) !== '' && trim($json) !== '[]') {
+        $tiles_cfg = json_decode($json, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($tiles_cfg) && !empty($tiles_cfg)) {
+            $tiles_html = local_homepage_config_render_tiles($tiles_cfg, $DB);
+            if ($tiles_html !== '') {
+                // Render tiles into a hidden server-side container.  The AMD module
+                // local_homepage_config/tiles_init transfers child nodes into the
+                // <div id="hpc-tiles"> placeholder placed by the admin in any section
+                // summary.  No HTML string is embedded in JavaScript, and no inline
+                // <script> tag is produced by this plugin (avoids CSP issues).
+                $PAGE->requires->js_call_amd('local_homepage_config/tiles_init', 'init');
+                $output .= html_writer::div($tiles_html, '', [
+                    'id'          => 'hpc-tiles-content',
+                    'style'       => 'display:none',
+                    'aria-hidden' => 'true',
+                ]);
+            }
+        }
+    }
+
+    // ── Advertising banner ───────────────────────────────────────────────────
+    $banner_html = local_homepage_config_render_banner();
+    if ($banner_html !== '') {
+        // The banner is injected as a visible wrapper so no admin-placed
+        // placeholder div is required (id attributes are stripped by
+        // HTMLPurifier / rich-text editors when saving section summaries).
+        // banner_init.js moves the inner .hpc-banner node into #region-main
+        // (Boost) or #page-content (Classic) so it appears above page content.
+        $PAGE->requires->js_call_amd('local_homepage_config/banner_init', 'init');
+        $output .= html_writer::div($banner_html, '', [
+            'id'    => 'hpc-banner-inject',
+            'style' => 'display:none',
+        ]);
+    }
+
+    return $output;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Render the advertising banner HTML from admin settings.
+ *
+ * Reads the bannercfg JSON array (unlimited slides) and global settings
+ * (bannerinterval, bannerheight, bannermaxwidth) from plugin config.
+ * Returns an empty string when no slide is configured.
+ *
+ * The returned HTML is the content for the hidden #hpc-banner-content div;
+ * the AMD module banner_init moves it into <div id="hpc-banner"> on load.
+ *
+ * @return string  Rendered banner HTML (empty if nothing configured).
+ */
+function local_homepage_config_render_banner(): string {
+    global $OUTPUT;
+
+    // Return the cached rendered HTML when available — avoids running
+    // format_text() / HTMLPurifier on every front-page request.
+    // The cache is purged immediately when any banner setting is saved.
+    $cache  = \cache::make('local_homepage_config', 'banner');
+    $cached = $cache->get('html');
+    if ($cached !== false) {
+        return $cached;
+    }
+
+    $json = get_config('local_homepage_config', 'bannercfg');
     if (!$json || trim($json) === '' || trim($json) === '[]') {
         return '';
     }
-
-    $tiles_cfg = json_decode($json, true);
-    if (json_last_error() !== JSON_ERROR_NONE || !is_array($tiles_cfg) || empty($tiles_cfg)) {
+    $cfg = json_decode($json, true);
+    if (json_last_error() !== JSON_ERROR_NONE || !is_array($cfg) || empty($cfg)) {
         return '';
     }
 
-    // Build tile HTML.
-    $tiles_html = local_homepage_config_render_tiles($tiles_cfg, $DB);
-    if ($tiles_html === '') {
+    $messages = [];
+    $first    = true;
+    foreach ($cfg as $slide) {
+        $raw = $slide['html'] ?? '';
+        if (!is_string($raw) || trim($raw) === '') {
+            continue;
+        }
+        // format_text() runs HTMLPurifier (trusted=false, noclean=false by default).
+        // This strips <script>, event handlers (onclick, onload…) and javascript: URLs
+        // before the content reaches the browser — eliminating persistent XSS even if
+        // an admin account is compromised.  Legitimate HTML (headings, images, links,
+        // inline styles) is preserved.  The sanitised output is safe for {{{html}}} in
+        // the Mustache template (triple braces = no double-escaping).
+        $messages[] = [
+            'html'  => format_text($raw, FORMAT_HTML, ['trusted' => false]),
+            'first' => $first,
+        ];
+        $first = false;
+    }
+
+    if (empty($messages)) {
         return '';
     }
 
-    // Render tiles into a hidden server-side container.  The AMD module
-    // local_homepage_config/tiles_init transfers child nodes into the
-    // <div id="hpc-tiles"> placeholder placed by the admin in any section
-    // summary.  No HTML string is embedded in JavaScript, and no inline
-    // <script> tag is produced by this plugin (avoids CSP issues).
-    $PAGE->requires->js_call_amd('local_homepage_config/tiles_init', 'init');
-    return html_writer::div($tiles_html, '', [
-        'id'         => 'hpc-tiles-content',
-        'style'      => 'display:none',
-        'aria-hidden' => 'true',
+    $interval = (int) get_config('local_homepage_config', 'bannerinterval');
+    if ($interval <= 0) {
+        $interval = 5;
+    }
+
+    // Build optional inline style from dimension settings.
+    // Only allow safe CSS length values (number + unit) to prevent injection.
+    $css_length = '/^\d+(\.\d+)?(px|em|rem|vh|vw|%)$/';
+    $style = '';
+    $height   = trim((string) get_config('local_homepage_config', 'bannerheight'));
+    $maxwidth = trim((string) get_config('local_homepage_config', 'bannermaxwidth'));
+    if ($height !== '' && preg_match($css_length, $height)) {
+        $style .= 'min-height:' . $height . ';';
+    }
+    if ($maxwidth !== '' && preg_match($css_length, $maxwidth)) {
+        $style .= 'max-width:' . $maxwidth . ';margin-left:auto;margin-right:auto;';
+    }
+
+    $html = $OUTPUT->render_from_template('local_homepage_config/banner', [
+        'messages'     => $messages,
+        'has_multiple' => count($messages) > 1,
+        'slidecount'   => count($messages),
+        'interval'     => $interval * 1000,   // Milliseconds for the data attribute.
+        'has_style'    => $style !== '',
+        'style'        => $style,
     ]);
+
+    $cache->set('html', $html);
+    return $html;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -91,11 +220,11 @@ function local_homepage_config_before_footer(): string {
  *   link     string   URL — tile becomes a link (optional)
  *   newtab   bool     Open link in new tab
  *
- * @param array  $cfg   Decoded JSON config.
- * @param moodle_database $DB
+ * @param array             $cfg  Decoded JSON config.
+ * @param \moodle_database  $DB
  * @return string  Rendered HTML (empty if nothing to show).
  */
-function local_homepage_config_render_tiles(array $cfg, $DB): string {
+function local_homepage_config_render_tiles(array $cfg, \moodle_database $DB): string {
     global $OUTPUT;
 
     $count  = count($cfg);
@@ -155,7 +284,7 @@ function local_homepage_config_render_tiles(array $cfg, $DB): string {
 
 // ── DB helpers ────────────────────────────────────────────────────────────────
 
-function local_homepage_config_resolve_catids(int $catid, bool $subcats, $DB): array {
+function local_homepage_config_resolve_catids(int $catid, bool $subcats, \moodle_database $DB): array {
     if ($catid <= 0) {
         return [];
     }
@@ -175,7 +304,7 @@ function local_homepage_config_resolve_catids(int $catid, bool $subcats, $DB): a
     return $ids;
 }
 
-function local_homepage_config_count_courses(int $catid, bool $subcats, $DB): int {
+function local_homepage_config_count_courses(int $catid, bool $subcats, \moodle_database $DB): int {
     $cache    = \cache::make('local_homepage_config', 'tilecounts');
     $cachekey = 'courses_' . $catid . '_' . ($subcats ? '1' : '0');
     $cached   = $cache->get($cachekey);
@@ -200,7 +329,7 @@ function local_homepage_config_count_courses(int $catid, bool $subcats, $DB): in
     return $result;
 }
 
-function local_homepage_config_count_users(int $catid, bool $subcats, $DB): int {
+function local_homepage_config_count_users(int $catid, bool $subcats, \moodle_database $DB): int {
     $cache    = \cache::make('local_homepage_config', 'tilecounts');
     $cachekey = 'users_' . $catid . '_' . ($subcats ? '1' : '0');
     $cached   = $cache->get($cachekey);

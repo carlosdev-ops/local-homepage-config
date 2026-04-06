@@ -35,4 +35,17 @@ $definitions = [
         'staticacceleration' => true,
         'ttl'                => 300,
     ],
+
+    // Stores the fully rendered banner HTML (after format_text / HTMLPurifier).
+    // Shared across all users — the banner is identical for everyone.
+    // TTL of 5 minutes is the fallback; the cache is purged immediately when any
+    // banner setting (bannercfg, bannerinterval, bannerheight, bannermaxwidth) is
+    // saved via the admin settings page.
+    'banner' => [
+        'mode'               => cache_store::MODE_APPLICATION,
+        'simplekeys'         => true,
+        'simpledata'         => false, // HTML strings can exceed the simple-data limit.
+        'staticacceleration' => true,
+        'ttl'                => 300,
+    ],
 ];

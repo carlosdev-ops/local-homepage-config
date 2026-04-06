@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -203,5 +205,123 @@ class lib_test extends \advanced_testcase {
         \cache::make('local_homepage_config', 'tilecounts')->purge();
         $this->assertGreaterThan(0, local_homepage_config_count_users($cat1->id, false, $DB));
         $this->assertSame(0,        local_homepage_config_count_users($cat2->id, false, $DB));
+    }
+
+    // =========================================================================
+    // local_homepage_config_render_banner
+    // =========================================================================
+
+    /**
+     * No bannercfg stored → returns empty string.
+     */
+    public function test_render_banner_returns_empty_when_no_config(): void {
+        unset_config('bannercfg', 'local_homepage_config');
+        $this->assertSame('', local_homepage_config_render_banner());
+    }
+
+    /**
+     * Invalid JSON in bannercfg → returns empty string without fatal error.
+     */
+    public function test_render_banner_returns_empty_on_invalid_json(): void {
+        set_config('bannercfg', '{not valid json}', 'local_homepage_config');
+        $this->assertSame('', local_homepage_config_render_banner());
+    }
+
+    /**
+     * Empty JSON array in bannercfg → returns empty string.
+     */
+    public function test_render_banner_returns_empty_for_empty_array(): void {
+        set_config('bannercfg', '[]', 'local_homepage_config');
+        $this->assertSame('', local_homepage_config_render_banner());
+    }
+
+    /**
+     * Slides whose html field is empty or whitespace-only are skipped;
+     * if all slides are empty the function returns ''.
+     */
+    public function test_render_banner_skips_slides_with_empty_html(): void {
+        $cfg = json_encode([['html' => ''], ['html' => '   ']]);
+        set_config('bannercfg', $cfg, 'local_homepage_config');
+        $this->assertSame('', local_homepage_config_render_banner());
+    }
+
+    /**
+     * Valid bannercfg → returns non-empty HTML containing the slide content.
+     */
+    public function test_render_banner_returns_html_with_valid_config(): void {
+        $cfg = json_encode([
+            ['html' => '<p>Hello world</p>'],
+            ['html' => '<p>Slide two</p>'],
+        ]);
+        set_config('bannercfg', $cfg, 'local_homepage_config');
+        $html = local_homepage_config_render_banner();
+        $this->assertNotEmpty($html);
+        $this->assertStringContainsString('Hello world', $html);
+    }
+
+    // =========================================================================
+    // local_homepage_config_render_tiles
+    // =========================================================================
+
+    /**
+     * Empty config array → returns empty string.
+     */
+    public function test_render_tiles_returns_empty_for_empty_array(): void {
+        global $DB;
+        $this->assertSame('', local_homepage_config_render_tiles([], $DB));
+    }
+
+    /**
+     * Tiles without a title are skipped; if all are titleless the function returns ''.
+     */
+    public function test_render_tiles_skips_tiles_without_title(): void {
+        global $DB;
+        $cfg = [
+            ['title' => '',   'type' => 'none', 'icon' => '', 'color' => 'blue'],
+            ['title' => '  ', 'type' => 'none', 'icon' => '', 'color' => 'blue'],
+        ];
+        $this->assertSame('', local_homepage_config_render_tiles($cfg, $DB));
+    }
+
+    /**
+     * A tile with type "custom" renders and displays the configured value.
+     */
+    public function test_render_tiles_custom_type_displays_value(): void {
+        global $DB;
+        $cfg = [[
+            'title' => 'My Tile',
+            'type'  => 'custom',
+            'value' => '42',
+            'icon'  => 'users',
+            'color' => 'blue',
+        ]];
+        $html = local_homepage_config_render_tiles($cfg, $DB);
+        $this->assertNotEmpty($html);
+        $this->assertStringContainsString('42', $html);
+        $this->assertStringContainsString('My Tile', $html);
+    }
+
+    // =========================================================================
+    // local_homepage_config_invalidate_tile_cache
+    // =========================================================================
+
+    /**
+     * After calling invalidate_tile_cache() a newly-created course is counted.
+     */
+    public function test_invalidate_tile_cache_forces_fresh_count(): void {
+        global $DB;
+        $cat = $this->getDataGenerator()->create_category();
+        \cache::make('local_homepage_config', 'tilecounts')->purge();
+
+        $before = local_homepage_config_count_courses($cat->id, false, $DB);
+        // Create a course — still cached, so count must not change yet.
+        $this->getDataGenerator()->create_course(['category' => $cat->id, 'visible' => 1]);
+        $cached = local_homepage_config_count_courses($cat->id, false, $DB);
+        $this->assertSame($before, $cached, 'Count should be served from cache before invalidation');
+
+        // Invalidate — the fresh count must now be returned.
+        local_homepage_config_invalidate_tile_cache();
+        $after = local_homepage_config_count_courses($cat->id, false, $DB);
+        $this->assertSame($before + 1, $after, 'Count should reflect new course after cache invalidation');
     }
 }

@@ -1,0 +1,6 @@
+# Temporary source-map files produced by the build_amd.sh script.
+amd/build/*.min.js.tmp
+amd/build/*.min.js.tmp.map
+
+# Local diagnostics / debug helper (never commit).
+diag.php

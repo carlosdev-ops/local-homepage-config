@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -48,7 +50,7 @@ class config_imported extends \core\event\base {
     public function get_description(): string {
         $component = $this->other['themecomponent'] ?? 'unknown';
         $stats     = $this->other['stats'] ?? [];
-        $errors    = count($stats['errors'] ?? []);
+        $errors    = (int)($stats['error_count'] ?? 0);
         return "User {$this->userid} imported a visual configuration for theme component '{$component}'. " .
                "Settings: {$stats['settings']}, files: {$stats['files']}, menus: {$stats['menus']}, " .
                "flavours: {$stats['flavours']}, blocks: {$stats['blocks']}, errors: {$errors}.";

@@ -47,3 +47,18 @@ Feature: Export and import visual configuration
   Scenario: Restore blocks checkbox shows the security warning
     Given I navigate to "Local plugins > Configuration page d'accueil > Config. visuelle — Export / Import" in site administration
     Then I should see "Attention : ceci supprimera et remplacera"
+
+  Scenario: Banner hidden container is injected into the front page when bannercfg is set
+    Given the following config values are set as admin:
+      | bannercfg | [{"html":"<p>Behat banner slide</p>"}] | local_homepage_config |
+    When I am on site homepage
+    Then "div#hpc-banner-inject" "css_element" should exist
+    And I should see "Behat banner slide"
+
+  @javascript
+  Scenario: Banner carousel is visible and interactive after AMD initialisation
+    Given the following config values are set as admin:
+      | bannercfg | [{"html":"<p>Slide A</p>"},{"html":"<p>Slide B</p>"}] | local_homepage_config |
+    When I am on site homepage
+    Then ".hpc-banner" "css_element" should exist
+    And ".hpc-banner__dot" "css_element" should exist

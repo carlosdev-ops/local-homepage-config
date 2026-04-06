@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/homepage_config/db" VERSION="20260405"
+    COMMENT="XMLDB file for local_homepage_config"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
+  <TABLES>
+    <TABLE NAME="local_homepage_config_import" COMMENT="Log of every configuration import — who ran it, when, and what changed.">
+      <FIELDS>
+        <FIELD NAME="id"             TYPE="int"  LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid"         TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  COMMENT="User who ran the import"/>
+        <FIELD NAME="timecreated"    TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  COMMENT="Unix timestamp of the import"/>
+        <FIELD NAME="themecomponent" TYPE="char" LENGTH="100" NOTNULL="true" DEFAULT=""  COMMENT="Frankenstyle theme component from the ZIP manifest"/>
+        <FIELD NAME="settings"       TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  COMMENT="Theme + plugin settings written"/>
+        <FIELD NAME="coresettings"   TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  COMMENT="Core config keys written"/>
+        <FIELD NAME="files"          TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  COMMENT="Files restored"/>
+        <FIELD NAME="menus"          TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  COMMENT="Smart Menus restored"/>
+        <FIELD NAME="flavours"       TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  COMMENT="Flavours restored"/>
+        <FIELD NAME="blocks"         TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  COMMENT="Block instances restored"/>
+        <FIELD NAME="errors"         TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  COMMENT="Number of non-fatal errors during import"/>
+        <FIELD NAME="restoreblocks"  TYPE="int"  LENGTH="1"  NOTNULL="true" DEFAULT="0"  COMMENT="1 if the restore-blocks checkbox was ticked"/>
+        <FIELD NAME="snapshotfileid" TYPE="int"  LENGTH="10" NOTNULL="true" DEFAULT="0"  COMMENT="ID of the stored_file snapshot taken before this import (0 = not available)"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="fk_userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="timecreated" UNIQUE="false" FIELDS="timecreated"/>
+        <INDEX NAME="userid"      UNIQUE="false" FIELDS="userid"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>

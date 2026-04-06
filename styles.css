@@ -50,3 +50,124 @@ a:hover .hpt-tile {
 .hpt-tile--teal   .hpt-tile__subtitle {
     color: rgba(255, 255, 255, .75) !important;
 }
+
+/* ── Advertising banner carousel ───────────────────────────────────────────── */
+
+.hpc-banner {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    outline: none;
+}
+
+.hpc-banner:focus-visible {
+    outline: 3px solid #005fcc;
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+/* Live status region — invisible on screen, read by screen readers only. */
+.hpc-banner__status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Slides are hidden by default; only .is-active is shown. */
+.hpc-banner__slide {
+    display: none;
+}
+
+.hpc-banner__slide.is-active {
+    display: block;
+    animation: hpcBannerFadeIn .5s ease;
+}
+
+@keyframes hpcBannerFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Banner slide content helpers ──────────────────────────────────────────── */
+/* Use these classes inside bannercfg HTML instead of inline styles.
+   HTMLPurifier (trusted=false) strips linear-gradient, border-radius and
+   opacity from inline style attributes — these classes sidestep that limit. */
+
+.hpc-slide {
+    padding: 2.5rem 2rem;
+    border-radius: .5rem;
+    text-align: center;
+    /* color is intentionally NOT set here — each variant sets it.
+       This ensures text remains visible even when the CSS cache is stale
+       and the gradient background hasn't loaded yet. */
+}
+
+.hpc-slide--blue   { background: linear-gradient(135deg, #007bff, #0056b3); color: #fff; }
+.hpc-slide--green  { background: linear-gradient(135deg, #28a745, #1a7a31); color: #fff; }
+.hpc-slide--orange { background: linear-gradient(135deg, #fd7e14, #c85e00); color: #fff; }
+.hpc-slide--purple { background: linear-gradient(135deg, #6f42c1, #4e2d8e); color: #fff; }
+.hpc-slide--teal   { background: linear-gradient(135deg, #20c997, #128f6b); color: #fff; }
+.hpc-slide--red    { background: linear-gradient(135deg, #dc3545, #a71d2a); color: #fff; }
+
+.hpc-slide__title {
+    margin: 0 0 .5rem;
+    font-size: 1.8rem;
+    color: inherit;
+}
+
+.hpc-slide__text {
+    margin: 0;
+    font-size: 1.1rem;
+    opacity: .9;
+}
+
+.hpc-slide__btn {
+    display: inline-block;
+    margin-top: 1.2rem;
+    padding: .6rem 1.8rem;
+    background: #fff;
+    border-radius: 2rem;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.hpc-slide__btn--blue   { color: #007bff; }
+.hpc-slide__btn--green  { color: #28a745; }
+.hpc-slide__btn--orange { color: #fd7e14; }
+.hpc-slide__btn--purple { color: #6f42c1; }
+.hpc-slide__btn--teal   { color: #20c997; }
+.hpc-slide__btn--red    { color: #dc3545; }
+
+/* Navigation dots. */
+.hpc-banner__dots {
+    display: flex;
+    justify-content: center;
+    gap: .4rem;
+    padding: .6rem 0 0;
+}
+
+.hpc-banner__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, .2);
+    cursor: pointer;
+    padding: 0;
+    transition: background .2s ease, transform .2s ease;
+}
+
+.hpc-banner__dot:hover {
+    background: rgba(0, 0, 0, .4);
+}
+
+.hpc-banner__dot.is-active {
+    background: rgba(0, 0, 0, .65);
+    transform: scale(1.25);
+}

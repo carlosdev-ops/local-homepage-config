@@ -1,16 +1,43 @@
 # local_homepage_config
 
+![Version](https://img.shields.io/badge/version-3.3.0-blue)
+![Moodle](https://img.shields.io/badge/Moodle-4.1--4.5-orange)
+![License](https://img.shields.io/badge/license-GPLv3-green)
+![PHP](https://img.shields.io/badge/PHP-7.4--8.4-purple)
+
 ## English summary
 
 **local_homepage_config** is a Moodle 4.1+ local plugin with two features:
 
-1. **Visual configuration export/import** — Packages a complete snapshot of your Boost Union theme (settings, uploaded images, Smart Menus, Flavours, front-page blocks) into a ZIP file that can be imported on another Moodle instance. Useful for deploying a consistent look across multiple sites or environments.
+1. **Visual configuration export/import** — Packages a complete snapshot of your Boost Union theme (settings, uploaded images, Smart Menus, Flavours, front-page blocks including dashboard) into a ZIP file that can be imported on another Moodle instance. Key features of the import workflow:
+   - **Automatic pre-import snapshot** with one-click rollback (24 h window) — every import is safe to undo.
+   - **Diff before confirming** — a table shows each setting as changed / added / unchanged before you commit.
+   - **Selective import** — choose which sections to apply (settings, files, menus, flavours, blocks…).
+   - **Cohort reference warning** — detects Smart Menu items or Flavours that reference cohort IDs and prompts manual review after transfer.
+   - **CLI scripts** (`cli/export.php`, `cli/import.php`) — automate transfers in pipelines; `--dry-run` shows the diff without touching the database.
+   - Every import is logged in a dedicated DB table with user, timestamp, snapshot file ID, and per-type counts.
 
 2. **Dynamic homepage tiles** — Injects live course/user count tiles into any `<div id="hpc-tiles">` placeholder placed in a section summary. Counts are server-side rendered via a Mustache template and cached for 5 minutes.
 
+3. **Advertising banner carousel** — Injects a rotating HTML banner into any `<div id="hpc-banner">` placeholder. Supports unlimited slides (JSON array), configurable rotation interval, minimum height, and maximum width. Fully keyboard-navigable (arrow keys, Home, End) and screen-reader friendly (`aria-live` status region). Slide HTML is sanitised by HTMLPurifier on every render.
+
+### PHP compatibility
+
+| PHP | Compatible | Notes |
+|---|---|---|
+| 7.4 | ✅ | Minimum supported — arrow functions (`fn()`) required |
+| 8.0 | ✅ | |
+| 8.1 | ✅ | |
+| 8.2 | ✅ | |
+| 8.3 | ✅ | |
+| 8.4 | ✅ | Confirmed working (Apache + PHP 8.4) |
+
+> The plugin requires no PHP 8.0+ syntax — union type hints are expressed as PHPDoc only, keeping compatibility from PHP 7.4 onward. This aligns with Moodle 4.1's own minimum PHP requirement.
+
 ### Requirements
-- Moodle 4.1+
-- PHP ZipArchive extension
+- Moodle 4.1–4.5
+- PHP 7.4–8.4 (see table above)
+- PHP `ZipArchive` extension
 - Boost Union theme (configurable)
 
 ### Installation
@@ -24,6 +51,49 @@ Copy the `local/homepage_config` directory into your Moodle installation and run
 ### Limitations
 - Block export is fully supported for `html` blocks only. Other block types are migrated via their `configdata` field; auxiliary table rows are not transferred.
 - Only import ZIP files produced by this plugin from a **trusted** Moodle instance (block configdata is deserialized during restore).
+
+### User guide (French)
+A complete user guide describing everything the plugin does and does not do is available in [`GUIDE_UTILISATEUR.md`](GUIDE_UTILISATEUR.md).
+
+### Building AMD JavaScript
+
+The `amd/build/` files are compiled from `amd/src/` using the included `build_amd.sh` script, which requires [terser](https://terser.org/) ≥ 5:
+
+```bash
+npm install -g terser          # once
+cd /path/to/moodle
+bash local/homepage_config/build_amd.sh
+```
+
+The script (1) injects the Moodle module name into `define()` via `sed`, (2) minifies with terser, and (3) restores the `define (` space so Moodle's PHP loader does not re-inject the name at serve time.
+
+If the full Moodle dev toolchain is available (`npm install` at the Moodle root), Grunt can be used instead:
+
+```bash
+npx grunt amd --root=local/homepage_config
+```
+
+### Running tests
+
+```bash
+# PHPUnit — manager (35 tests: export, import, snapshot/rollback, diff, cohort detection…)
+vendor/bin/phpunit local/homepage_config/tests/manager_test.php
+
+# PHPUnit — lib helpers
+vendor/bin/phpunit local/homepage_config/tests/lib_test.php
+
+# PHPUnit — CSS length validator
+vendor/bin/phpunit local/homepage_config/tests/admin/setting_css_length_test.php
+
+# PHPUnit — external function
+vendor/bin/phpunit local/homepage_config/tests/external/get_tile_counts_test.php
+
+# PHPUnit — RGPD privacy provider
+vendor/bin/phpunit local/homepage_config/tests/privacy/provider_test.php
+
+# Behat — export/import UI
+php admin/tool/behat/cli/run.php --tags=@local_homepage_config
+```
 
 ---
 
@@ -166,9 +236,32 @@ Table `theme_boost_union_flavours` :
 2. Dans la section Import, sélectionner le fichier `.zip`
 3. Cocher **Restaurer les blocs** si vous souhaitez aussi copier les blocs de page d'accueil
    > ⚠️ Cette option **supprime** les blocs existants avant de les recréer
-4. Cliquer **Importer**
-5. Un message de confirmation indique le nombre d'éléments importés
-6. Les caches du thème sont purgés automatiquement — le visuel est actif immédiatement
+4. Cliquer **Importer** → une page d'**aperçu** s'affiche avec :
+   - La source de l'export (thème, version Moodle, date)
+   - Le contenu du ZIP (X paramètres, Y fichiers, Z menus…)
+5. Cliquer **Confirmer l'import** (bouton rouge) ou **Annuler**
+6. Un message de confirmation indique le nombre d'éléments importés
+7. Les caches du thème sont purgés automatiquement — le visuel est actif immédiatement
+8. L'import est enregistré dans l'**historique** visible en haut de la page (10 derniers)
+
+### Panneau publicitaire — mise en place
+
+1. Dans les **paramètres du plugin** (section *Panneau publicitaire*), saisir le JSON des diapositives :
+```json
+[
+  {"html": "<div class=\"...\">Contenu diapo 1</div>"},
+  {"html": "<div class=\"...\">Contenu diapo 2</div>"},
+  {"html": "<div class=\"...\">Contenu diapo 3</div>"}
+]
+```
+2. Configurer l'intervalle (secondes), la hauteur minimale et la largeur maximale (optionnels)
+3. Dans le résumé d'une section de la page d'accueil, insérer le placeholder :
+```html
+<div id="hpc-banner"></div>
+```
+4. Sauvegarder — le panneau s'affiche automatiquement
+
+> Le HTML de chaque diapositive est filtré par **HTMLPurifier** à chaque rendu : les balises `<script>` et les gestionnaires d'événements (`onclick`, `onerror`…) sont supprimés automatiquement.
 
 ---
 
@@ -286,22 +379,36 @@ Le champ `plugin_config` enregistre la configuration **utilisée au moment de l'
 ```
 local/homepage_config/
 │
-├── version.php                    ← Version 3.1.1, requires Moodle 4.1
+├── version.php                    ← Version 3.3.0, requires Moodle 4.1
 ├── settings.php                   ← Enregistrement dans l'arbre admin Moodle
-├── index.php                      ← Page Export / Import (UI admin)
-├── lib.php                        ← Hook before_footer + rendu des tuiles
+├── index.php                      ← Page Export / Import (UI admin + historique + rollback)
+├── lib.php                        ← Hook before_footer + rendu tuiles & banneau
+├── styles.css                     ← Tuiles (6 couleurs) + animation banneau carousel
+│
+├── cli/
+│   ├── export.php                 ← CLI : génère le ZIP (--output, --help)
+│   └── import.php                 ← CLI : importe un ZIP (--skip, --blocks, --dry-run…)
 │
 ├── amd/
-│   ├── src/tiles_init.js          ← Module AMD source : déplace les tuiles dans le DOM
-│   └── build/tiles_init.min.js    ← Version minifiée (chargée en prod)
+│   ├── src/
+│   │   ├── tiles_init.js          ← Module AMD : déplace les tuiles dans le DOM
+│   │   └── banner_init.js         ← Module AMD : carousel + clavier + aria-live
+│   └── build/
+│       ├── tiles_init.min.js      ← Version minifiée (chargée en prod)
+│       ├── tiles_init.min.js.map
+│       ├── banner_init.min.js
+│       └── banner_init.min.js.map
 │
 ├── templates/
-│   └── tiles.mustache             ← Template Mustache des tuiles dynamiques
+│   ├── tiles.mustache             ← Template Mustache des tuiles dynamiques
+│   └── banner.mustache            ← Template Mustache du panneau publicitaire
 │
 ├── classes/
-│   ├── manager.php                ← Toute la logique export/import/résumé
+│   ├── manager.php                ← Export / import / snapshot / rollback / diff / peek_zip
 │   ├── external/
 │   │   └── get_tile_counts.php    ← Web service : comptages cours/utilisateurs
+│   ├── form/
+│   │   └── import_form.php        ← Formulaire d'import (moodleform)
 │   ├── event/
 │   │   ├── config_exported.php    ← Événement Moodle : export déclenché
 │   │   └── config_imported.php    ← Événement Moodle : import déclenché
@@ -310,8 +417,24 @@ local/homepage_config/
 │
 ├── db/
 │   ├── access.php                 ← Capability : local/homepage_config:manage
-│   ├── caches.php                 ← Définition du cache applicatif tilecounts (TTL 5 min)
-│   └── services.php               ← Déclaration du web service get_tile_counts
+│   ├── caches.php                 ← Cache applicatif tilecounts (TTL 5 min)
+│   ├── install.xml                ← Schéma DB : table local_homepage_config_import
+│   ├── services.php               ← Déclaration du web service get_tile_counts
+│   └── upgrade.php                ← Migrations de version (savepoints)
+│
+├── tests/
+│   ├── manager_test.php           ← PHPUnit : export, import, snapshot, diff, cohorts (35 tests)
+│   ├── lib_test.php               ← PHPUnit : resolve_catids, count_courses/users (12 tests)
+│   ├── admin/
+│   │   └── setting_css_length_test.php ← PHPUnit : validation CSS length (13 valides + 8 invalides)
+│   ├── external/
+│   │   └── get_tile_counts_test.php ← PHPUnit : web service (8 tests)
+│   ├── privacy/
+│   │   └── provider_test.php      ← PHPUnit : RGPD (8 tests)
+│   ├── behat/
+│   │   └── export_import.feature  ← Behat : UI export/import (8 scénarios)
+│   └── fixtures/
+│       └── not_a_zip.txt          ← Fixture pour le test de rejet de fichier invalide
 │
 └── lang/
     ├── en/local_homepage_config.php
@@ -323,8 +446,14 @@ local/homepage_config/
 | Méthode | Rôle |
 |---|---|
 | `export_to_zip()` | Crée le ZIP dans un répertoire temporaire, retourne le chemin |
-| `import_from_zip($path, $restore_blocks)` | Applique la config depuis le ZIP, retourne les stats |
+| `peek_zip($path)` | Lit le ZIP sans rien écrire — retourne stats + metadata + cohort warnings |
+| `diff_zip($path)` | Comme `peek_zip` + compare chaque paramètre avec la DB (changed/added/unchanged) |
+| `import_from_zip($path, $options, $take_snapshot)` | Applique la config depuis le ZIP (sections sélectives), retourne les stats |
+| `take_snapshot()` | Exporte l'état courant et le stocke dans le filearea `snapshots` ; retourne l'ID du fichier |
+| `rollback_to_snapshot($fileid)` | Restaure un snapshot précédent ; retourne les stats comme `import_from_zip` |
+| `prune_snapshots($older_than_seconds)` | Supprime les snapshots plus vieux que le seuil (défaut : 24 h) |
 | `get_summary()` | Retourne compteurs + timestamps dernier export/import pour l'UI |
+| `get_defaults()` | Retourne les valeurs par défaut de tous les paramètres (source unique) |
 
 ### La classe `manager` — méthodes privées clés
 
@@ -456,9 +585,15 @@ Elles sont également loggées avec `debugging()` au niveau `DEBUG_DEVELOPER` po
 
 ## Versions
 
-| Version | Changements |
-|---|---|
-| **3.1.1** | Sécurité : assainissement du fallback `unserialize` sur import de blocs. Perf : O(n×m) → O(n+m) dans `restore_flavours`. Rendu tuiles via Mustache + AMD (plus de script inline). Web service `get_tile_counts` remplace l'endpoint PHP brut. Erreurs d'import affichées dans l'UI. Timestamps dernier export/import dans le résumé. |
-| **3.0.0** | Tous les paramètres configurables via l'UI admin (plus rien de hard-codé) |
-| **2.0.0** | Ajout Smart Menus, Flavours, core settings, blocs course-index |
-| **1.0.0** | Export/import config_plugins + fichiers + blocs site-index |
+| Version | Date | Tag Git | Changements |
+|---|---|---|---|
+| **3.3.0** | 2026-04-05 | `v3.3.0` | Snapshot automatique avant chaque import + rollback 1-clic (24 h). Diff interactif (tableau changed/added/unchanged) affiché avant confirmation. Import sélectif : 6 sections cochables (settings, plugin_settings, core_settings, files, menus, flavours). Avertissement cohortes : détecte les Smart Menus items et Flavours référençant des IDs de cohortes lors de l'aperçu. Blocs dashboard (`my-index`) inclus dans les préfixes par défaut avec option `reset_dashboards`. CLI : `cli/export.php` et `cli/import.php` avec `--dry-run`, `--skip`, `--blocks`, `--reset-dashboards`, `--no-snapshot`. DB : colonne `snapshotfileid` dans `local_homepage_config_import`. Constante `IMPORT_DEFAULTS`. 16 nouveaux tests PHPUnit (total : 35). Parité FR/EN lang (148 clés chacune). |
+| **3.2.4** | 2026-04-05 | `v3.2.4` | Performance : cache `banner` (HTML rendu par HTMLPurifier mis en cache, invalidé à chaque sauvegarde). DB : index `userid` sur la table d'audit (requêtes RGPD sans full scan). Validation UI : `setting_css_length` dans `classes/admin/` (erreur inline pour hauteur/largeur invalides). 9 tests PHPUnit RGPD (`tests/privacy/provider_test.php`). 21 tests PHPUnit CSS length validator (`tests/admin/setting_css_length_test.php`). 2 scénarios Behat banneau. `declare(strict_types=1)` ajouté dans 7 fichiers. `aria-label` banneau via clé de langue. `global $DB` centralisé en tête de fonction dans `upgrade.php`. PHP 8.4 confirmé compatible. `GUIDE_UTILISATEUR.md` complet. |
+| **3.2.3** | 2026-04-05 | `v3.2.3` | Qualité : suppression du double `if (!banner)` mort dans `banner_init.js`. Test PHPUnit roundtrip `bannercfg` ajouté. `.gitignore` plugin créé (exclut `*.tmp.map` et `diag.php`). Section Build AMD du README corrigée pour correspondre au script `build_amd.sh`. |
+| **3.2.2** | 2026-03-31 | `v3.2.2` | Sécurité : historique des imports en table DB dédiée (`local_homepage_config_import`) avec user, timestamp et compteurs. Nouvelle table créée via `install.xml` + upgrade step. |
+| **3.2.1** | 2026-03-31 | `v3.2.1` | Amélioration : `bannermsg1/2/3` remplacés par un tableau JSON `bannercfg` (slides illimitées). Migration automatique via upgrade step. Banneau : sécurité XSS via `format_text()` + HTMLPurifier. Navigation clavier (`←` `→` `Home` `End`) + `aria-live` pour screen readers. Cache `tilecounts` invalidé immédiatement après sauvegarde des paramètres (via `set_updatedcallback`). Import en 2 étapes : aperçu du ZIP avant confirmation. |
+| **3.2.0** | 2026-03-31 | `v3.2.0` | Nouveau : panneau publicitaire rotatif (`<div id="hpc-banner">`). JSON array de diapositives HTML, animation fade, dots de navigation, intervalle + dimensions configurables. `db/upgrade.php` + savepoints. Formulaire import migré vers `moodleform`. Source unique pour les defaults. 6 variantes couleur pour tuiles. Tests PHPUnit + Behat. |
+| **3.1.1** | 2026-03-27 | `v3.1.1` | Sécurité : assainissement `unserialize`. Perf : O(n×m) → O(n+m) dans `restore_flavours`. Rendu tuiles via Mustache + AMD. Web service `get_tile_counts`. Erreurs d'import dans l'UI. |
+| **3.0.0** | 2026-02-15 | `v3.0.0` | Tous les paramètres configurables via l'UI admin (plus rien de hard-codé) |
+| **2.0.0** | 2026-01-10 | `v2.0.0` | Ajout Smart Menus, Flavours, core settings, blocs course-index |
+| **1.0.0** | 2025-12-01 | `v1.0.0` | Export/import config_plugins + fichiers + blocs site-index |

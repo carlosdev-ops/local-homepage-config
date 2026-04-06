@@ -1,0 +1,47 @@
+{{!
+    Renders the advertising banner carousel.
+
+    Slides through an unlimited number of admin-configured HTML messages automatically.
+    The JS module local_homepage_config/banner_init drives the rotation;
+    CSS handles the fade animation.
+
+    Context:
+    - messages (array): list of slide objects, each with:
+        - html   (string)  HTML sanitised by format_text() (HTMLPurifier) — safe for {{{...}}}.
+        - first  (bool)    True for the first slide (sets is-active class).
+    - has_multiple (bool)   True when more than one slide exists (shows dots).
+    - interval     (int)    Auto-play delay in milliseconds (data attribute).
+    - has_style    (bool)   True when at least one dimension setting is active.
+    - style        (string) Inline CSS string (min-height and/or max-width).
+    - slidecount   (int)    Total number of slides (used by the live status region).
+
+    Placeholder: place <div id="hpc-banner"></div> in any section summary.
+    The banner_init AMD module moves this rendered HTML into that div.
+
+    @template local_homepage_config/banner
+    @copyright 2026 Carlos Costa
+    @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+}}
+<div class="hpc-banner" data-interval="{{interval}}" data-slidecount="{{slidecount}}"{{#has_style}} style="{{style}}"{{/has_style}} tabindex="0" aria-roledescription="carousel" aria-label="{{#str}} banner_aria_label, local_homepage_config {{/str}}">
+    {{!
+        Live status region — visually hidden but read aloud by screen readers.
+        aria-live="polite" waits for the user to finish reading before announcing.
+        aria-atomic="true" ensures the full "1 / 3" string is read, not just the diff.
+        Populated and updated by banner_init.js on every slide change.
+    }}
+    <div class="hpc-banner__status" aria-live="polite" aria-atomic="true">1 / {{slidecount}}</div>
+    <div class="hpc-banner__track">
+        {{#messages}}
+        <div class="hpc-banner__slide{{#first}} is-active{{/first}}" role="group" aria-roledescription="slide">
+            {{{html}}}
+        </div>
+        {{/messages}}
+    </div>
+    {{#has_multiple}}
+    <div class="hpc-banner__dots" aria-hidden="true">
+        {{#messages}}
+        <button class="hpc-banner__dot{{#first}} is-active{{/first}}" type="button"></button>
+        {{/messages}}
+    </div>
+    {{/has_multiple}}
+</div>

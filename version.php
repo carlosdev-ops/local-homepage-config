@@ -25,8 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_homepage_config';
-$plugin->version   = 2026033100;
+$plugin->version   = 2026040508;
 $plugin->requires  = 2022112800; // Moodle 4.1+
-$plugin->supported = [401, 401];
+$plugin->supported = [401, 405];
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '3.2.0';
+$plugin->release   = '3.3.0';

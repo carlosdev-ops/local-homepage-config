@@ -15,13 +15,15 @@
 
 /**
  * Moves the pre-rendered tiles HTML from the hidden server-side container
- * into the <div id="hpc-tiles"> placeholder placed by the admin in any
- * section summary.
+ * into the top of the main content area.
  *
  * The tiles HTML is rendered server-side (Mustache template) and placed in
- * #hpc-tiles-content with display:none.  This module transfers the child nodes
- * into #hpc-tiles using DOM node moves — no innerHTML, no re-parsing, no HTML
- * string in JavaScript.
+ * #hpc-tiles-content with display:none.  This module extracts the inner
+ * .block-homepage-tiles node and prepends it to #region-main (Boost/Boost Union)
+ * or #page-content (Classic), falling back to document.body.
+ *
+ * This approach avoids requiring an admin-placed <div id="hpc-tiles"> placeholder
+ * whose id attribute is stripped by HTMLPurifier when saving section summaries.
  *
  * @module     local_homepage_config/tiles_init
  * @copyright  2026 Carlos Costa
@@ -32,18 +34,25 @@ define([], function() {
 
     return {
         /**
-         * Move tiles from the hidden prerender container into #hpc-tiles.
+         * Move tiles from the hidden prerender container into the main content area.
          */
         init: function() {
-            var target = document.getElementById('hpc-tiles');
             var source = document.getElementById('hpc-tiles-content');
-            if (!target || !source) {
+            if (!source) {
                 return;
             }
-            // Transfer child nodes directly — avoids HTML re-parsing and innerHTML.
-            while (source.firstChild) {
-                target.appendChild(source.firstChild);
+
+            // Find the best insertion point for the current theme.
+            var insertInto = document.getElementById('region-main')
+                          || document.getElementById('page-content')
+                          || document.body;
+
+            // Extract the tiles wrapper and prepend it.
+            var tiles = source.querySelector('.block-homepage-tiles');
+            if (!tiles) {
+                return;
             }
+            insertInto.insertBefore(tiles, insertInto.firstChild);
             source.parentNode.removeChild(source);
         }
     };

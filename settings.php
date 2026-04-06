@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -155,14 +157,67 @@ if ($hassiteconfig) {
             get_string('heading_tiles_desc', 'local_homepage_config')
         ));
 
-        $settingspage->add(new admin_setting_configtextarea(
+        $tilescfg_setting = new admin_setting_configtextarea(
             'local_homepage_config/tilescfg',
             get_string('tilescfg', 'local_homepage_config'),
             get_string('tilescfg_desc', 'local_homepage_config'),
             $d['tilescfg'],
             PARAM_RAW,  // JSON must not be transformed — PARAM_CLEANHTML would corrupt quotes and angle brackets.
             80, 20
+        );
+        // Purge the tile-counts cache immediately when the JSON config changes so
+        // that updated category IDs or types are reflected on the next page load
+        // without waiting for the 5-minute TTL.
+        $tilescfg_setting->set_updatedcallback('local_homepage_config_invalidate_tile_cache');
+        $settingspage->add($tilescfg_setting);
+
+        // ── Section: Advertising banner ───────────────────────────────────────
+        $settingspage->add(new admin_setting_heading(
+            'local_homepage_config/heading_banner',
+            get_string('heading_banner', 'local_homepage_config'),
+            get_string('heading_banner_desc', 'local_homepage_config')
         ));
+
+        $bannercfg_setting = new admin_setting_configtextarea(
+            'local_homepage_config/bannercfg',
+            get_string('bannercfg', 'local_homepage_config'),
+            get_string('bannercfg_desc', 'local_homepage_config'),
+            '',
+            PARAM_RAW,  // JSON must not be transformed — PARAM_CLEANHTML would corrupt quotes and angle brackets.
+            80, 15
+        );
+        $bannercfg_setting->set_updatedcallback('local_homepage_config_invalidate_banner_cache');
+        $settingspage->add($bannercfg_setting);
+
+        $bannerinterval_setting = new admin_setting_configtext(
+            'local_homepage_config/bannerinterval',
+            get_string('bannerinterval', 'local_homepage_config'),
+            get_string('bannerinterval_desc', 'local_homepage_config'),
+            '5',
+            PARAM_INT
+        );
+        $bannerinterval_setting->set_updatedcallback('local_homepage_config_invalidate_banner_cache');
+        $settingspage->add($bannerinterval_setting);
+
+        $bannerheight_setting = new \local_homepage_config\admin\setting_css_length(
+            'local_homepage_config/bannerheight',
+            get_string('bannerheight', 'local_homepage_config'),
+            get_string('bannerheight_desc', 'local_homepage_config'),
+            '',
+            PARAM_TEXT
+        );
+        $bannerheight_setting->set_updatedcallback('local_homepage_config_invalidate_banner_cache');
+        $settingspage->add($bannerheight_setting);
+
+        $bannermaxwidth_setting = new \local_homepage_config\admin\setting_css_length(
+            'local_homepage_config/bannermaxwidth',
+            get_string('bannermaxwidth', 'local_homepage_config'),
+            get_string('bannermaxwidth_desc', 'local_homepage_config'),
+            '',
+            PARAM_TEXT
+        );
+        $bannermaxwidth_setting->set_updatedcallback('local_homepage_config_invalidate_banner_cache');
+        $settingspage->add($bannermaxwidth_setting);
     }
 
     $ADMIN->add('local_homepage_config_cat', $settingspage);

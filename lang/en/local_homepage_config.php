@@ -49,19 +49,31 @@ $string['export']                 = 'Export configuration';
 $string['export_desc']            = 'Download the complete visual configuration as a ZIP file. Includes: Boost Union theme settings, uploaded images, Smart Menus, Flavours, and frontpage/course-index blocks.';
 $string['export_btn']             = 'Download export (.zip)';
 
+// Import sections (selective import)
+$string['import_sections_heading']       = 'Sections to import';
+$string['import_settings_label']         = 'Theme settings';
+$string['import_plugin_settings_label']  = 'Plugin settings (tiles, banner)';
+$string['import_core_settings_label']    = 'Core Moodle settings (homepage, theme name…)';
+$string['import_files_label']            = 'Files (images, logos, backgrounds…)';
+$string['import_menus_label']            = 'Smart Menus';
+$string['import_flavours_label']         = 'Flavours';
+
 // Import
 $string['import']                 = 'Import configuration';
 $string['import_desc']            = 'Upload a ZIP exported from another Moodle 4.1 instance with this plugin. Theme caches are purged automatically after import.';
 $string['import_file']            = 'Configuration file (.zip)';
-$string['import_blocks']          = 'Restore blocks (site-index + course-index)';
-$string['import_blocks_warn']     = 'Warning: this will delete and replace all existing blocks on the site frontpage and course category pages. Only import ZIP files exported by this plugin from a trusted Moodle instance — block configuration data is deserialized during restore.';
+$string['import_blocks']               = 'Restore blocks (site-index, course-index, dashboard)';
+$string['import_blocks_warn']          = 'Warning: this will delete and replace all existing blocks on the site frontpage, course category pages, and default dashboard. Only import ZIP files exported by this plugin from a trusted Moodle instance — block configuration data is deserialized during restore.';
+$string['import_reset_dashboards']     = 'Reset all user dashboards to the new default';
+$string['import_reset_dashboards_desc']= 'After restoring dashboard blocks, deletes all user-customised dashboard layouts so every user sees the new default. Irreversible.';
 $string['import_btn']             = 'Import';
 
 // Import result messages
-$string['import_success']         = 'Import successful — {$a->settings} theme settings, {$a->core_settings} core settings, {$a->files} files.';
+$string['import_success']         = 'Import successful — {$a->settings} theme settings, {$a->coresettings} core settings, {$a->files} files.';
 $string['import_success_menus']   = 'Smart Menus: {$a} menu(s) restored.';
 $string['import_success_flavours']= 'Flavours: {$a} flavour(s) restored.';
-$string['import_success_blocks']  = 'Blocks: {$a} block(s) restored.';
+$string['import_success_blocks']            = 'Blocks: {$a} block(s) restored.';
+$string['import_success_dashboards_reset']  = 'User dashboards have been reset to the new default.';
 $string['import_errors']          = 'Import completed with {$a} error(s). See details below.';
 $string['import_error_details']   = 'Import error details';
 
@@ -111,13 +123,100 @@ $string['coreconfigkeys_desc']    = 'Keys from the core Moodle <code>config</cod
 
 // Section: Dynamic tiles
 $string['heading_tiles']      = 'Dynamic front-page tiles';
-$string['heading_tiles_desc'] = 'Configure the stat tiles injected into <code>&lt;div id="hpc-tiles"&gt;&lt;/div&gt;</code> on the site front page. Live course/user counts are computed on every page load.';
+$string['heading_tiles_desc'] = 'Configure the stat tiles automatically displayed at the top of the site front page. Live course/user counts are computed on every page load. No placeholder is needed in the site summary.';
 $string['tilescfg']           = 'Tiles configuration (JSON)';
 $string['tilescfg_desc']      = 'JSON array of tile objects. Each object supports: <code>title</code>, <code>subtitle</code>, <code>type</code> (courses/users/custom/none), <code>catid</code>, <code>subcats</code>, <code>value</code> (custom), <code>icon</code> (FA name), <code>color</code> (blue/green/orange/purple/red/teal), <code>link</code>, <code>newtab</code>.<br>Example: <pre>[{"title":"Networks","type":"courses","catid":3,"subcats":true,"icon":"sitemap","color":"orange","link":"/course/index.php?categoryid=3"}]</pre>';
+
+// Section: Advertising banner
+$string['heading_banner']         = 'Advertising banner';
+$string['heading_banner_desc']    = 'Configure the rotating banner automatically displayed at the top of the site front page. HTML slides cycle automatically. Leave the JSON empty to disable the banner.';
+$string['bannercfg']              = 'Slides configuration (JSON)';
+$string['bannercfg_desc']         = 'JSON array of slide objects. Each object requires an <code>html</code> key containing the raw HTML for that slide. Any number of slides is supported.<br>Example: <pre>[{"html":"&lt;div&gt;Slide 1 content&lt;/div&gt;"},{"html":"&lt;div&gt;Slide 2 content&lt;/div&gt;"}]</pre>HTML is sanitised by HTMLPurifier on render — <code>&lt;script&gt;</code> tags and event handlers are stripped automatically.';
+$string['bannerinterval']         = 'Rotation interval (seconds)';
+$string['bannerinterval_desc']    = 'Number of seconds each slide is displayed before automatically moving to the next. Default: 5.';
+$string['bannerheight']           = 'Minimum height';
+$string['bannerheight_desc']      = 'Minimum height of the banner. Accepts any CSS length value: <code>200px</code>, <code>30vh</code>, <code>10em</code>, etc. Leave empty to let the content determine the height.';
+$string['bannermaxwidth']         = 'Maximum width';
+$string['bannermaxwidth_desc']    = 'Maximum width of the banner (centred automatically). Accepts any CSS length value: <code>1200px</code>, <code>80%</code>, <code>60rem</code>, etc. Leave empty for full width.';
+$string['banner_aria_label']         = 'Advertising banner';
+$string['banner_css_length_invalid'] = 'Invalid value. Enter a valid CSS length (e.g. <code>200px</code>, <code>30vh</code>, <code>80%</code>) or leave empty.';
+
+// Import history table
+$string['history_title']    = 'Import history (last 10)';
+$string['history_date']     = 'Date';
+$string['history_user']     = 'User';
+$string['history_theme']    = 'Theme component';
+$string['history_settings'] = 'Settings';
+$string['history_files']    = 'Files';
+$string['history_extras']   = 'Menus / Flavours / Blocks';
+$string['history_errors']   = 'Errors';
+$string['history_actions']  = 'Actions';
+
+// Snapshot / rollback
+$string['rollback_btn']       = 'Roll back';
+$string['rollback_confirm']   = 'This will restore the configuration to the state it was in just before this import. The current configuration will be overwritten. Continue?';
+$string['rollback_success']   = 'Configuration successfully rolled back to the pre-import snapshot.';
+$string['snapshotnotfound']   = 'Snapshot not found. It may have been deleted or may belong to a different site.';
+$string['snapshot_expired']   = 'This snapshot is more than 24 hours old and is no longer available for rollback.';
+
+// Cohort reference warning (preview step)
+$string['cohort_warn_title']    = 'Cohort references detected';
+$string['cohort_warn_intro']    = 'The following elements reference cohort IDs from the source site. Since cohort IDs differ between Moodle instances, these conditions will likely not work correctly after import and must be reconfigured manually:';
+$string['cohort_warn_menus']    = '{$a} Smart Menu item(s) with cohort-based visibility conditions';
+$string['cohort_warn_flavours'] = '{$a} Flavour(s) with cohort-based scope rules';
+$string['cohort_warn_action']   = 'After import: open each affected Smart Menu and Flavour in Boost Union settings and update the cohort conditions to match the cohorts available on this site.';
+
+// Import preview (step 1)
+$string['preview_title']          = 'Import preview';
+$string['preview_source']         = 'Export source';
+$string['preview_theme']          = 'Theme component: {$a}';
+$string['preview_format']         = 'Format version: {$a}';
+$string['preview_moodle']         = 'Moodle version: {$a}';
+$string['preview_exported_at']    = 'Exported on: {$a}';
+$string['preview_contents']       = 'What will be imported';
+$string['preview_settings_count'] = '{$a} setting(s) (theme, plugin, core)';
+$string['preview_files_count']    = '{$a} file(s) (images, logos…)';
+$string['preview_menus_count']    = '{$a} Smart Menu(s)';
+$string['preview_flavours_count'] = '{$a} Flavour(s)';
+$string['preview_blocks_count']         = '{$a} block(s) (restore blocks is enabled)';
+$string['preview_reset_dashboards_note']= 'All user dashboard customisations will be reset after import.';
+$string['preview_warning']        = 'This operation will overwrite the current configuration.';
+$string['preview_snapshot_note']  = 'A snapshot of the current configuration will be taken automatically — you can roll back from the import history within 24 hours.';
+$string['preview_confirm_btn']    = 'Confirm import';
+$string['preview_cancel']         = 'Cancel';
+$string['preview_expired']        = 'The import session has expired. Please re-upload the file.';
+
+// Settings diff (preview step)
+$string['diff_title']             = 'Settings changes';
+$string['diff_badge_changed']     = '{$a} setting(s) will change';
+$string['diff_badge_unchanged']   = '{$a} unchanged';
+$string['diff_source_theme']      = 'theme';
+$string['diff_source_plugin']     = 'plugin';
+$string['diff_source_core']       = 'core';
+$string['diff_col_source']        = 'Source';
+$string['diff_col_name']          = 'Setting';
+$string['diff_col_current']       = 'Current value';
+$string['diff_col_incoming']      = 'Incoming value';
+$string['diff_notset']            = '(not set)';
+$string['diff_show_unchanged']    = 'Show {$a} unchanged setting(s)';
+$string['diff_hide_unchanged']    = 'Hide unchanged settings';
 
 // Events
 $string['event_config_exported']  = 'Homepage configuration exported';
 $string['event_config_imported']  = 'Homepage configuration imported';
 
 // Privacy
-$string['privacy:metadata']       = 'This plugin does not store any personal data. It reads and writes Moodle site configuration only.';
+$string['privacy:metadata']       = 'This plugin records a log entry in the local_homepage_config_import table each time an administrator imports a configuration. The log stores the user ID, timestamp, and summary counts (settings, files, blocks…) of the operation. No content of the imported configuration is stored against the user.';
+$string['privacy:metadata:import']              = 'A log of every configuration import performed by an administrator.';
+$string['privacy:metadata:import:userid']       = 'The ID of the user who performed the import.';
+$string['privacy:metadata:import:timecreated']  = 'The date and time the import was performed.';
+$string['privacy:metadata:import:themecomponent'] = 'The Moodle theme component name targeted by the import (e.g. theme_boost_union).';
+$string['privacy:metadata:import:settings']     = 'Number of theme settings restored.';
+$string['privacy:metadata:import:coresettings'] = 'Number of core Moodle settings restored.';
+$string['privacy:metadata:import:files']        = 'Number of files restored.';
+$string['privacy:metadata:import:menus']        = 'Number of Smart Menus restored.';
+$string['privacy:metadata:import:flavours']     = 'Number of Flavours restored.';
+$string['privacy:metadata:import:blocks']       = 'Number of block instances restored.';
+$string['privacy:metadata:import:errors']       = 'Number of errors encountered during the import.';
+$string['privacy:metadata:import:restoreblocks']  = 'Whether the block-restore option was enabled for this import.';
+$string['privacy:metadata:import:snapshotfileid'] = 'The ID of the pre-import snapshot file stored in moodledata (0 if unavailable).';
